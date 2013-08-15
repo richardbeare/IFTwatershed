@@ -19,6 +19,7 @@
 
 #include <map>
 #include <list>
+#include <iostream>
 
 template< typename TKey, typename TValue, typename TKeyComp=std::greater<TKey>, typename TValueComp=std::less<TValue> >
 class IFTQueueA {
@@ -93,12 +94,12 @@ public:
 
   // returns the value at the front of the queue
   inline TValue front_value(){
-    return (*KeyMap.begin())->second;
+    return (KeyMap.begin())->second;
   }
 
   // returns the key at the front of the queue
-  inline TValue front_key(){
-    return (*KeyMap.begin())->first;
+  inline TKey front_key(){
+    return (KeyMap.begin())->first;
   }
 
   // removes the front entry in the queue
@@ -135,6 +136,14 @@ public:
     return KeyMap.size();
   }
 
+  void PrintKeyMap()
+  {
+    for (iterator kit = KeyMap.begin(); kit != KeyMap.end();++kit)
+      {
+      std::cout << kit->first << " " << kit->second << std::endl;
+      }
+  }
+
 private:
   // Keys will be priorities, Values be image locations, in some form.
   // Priorities will be gray level/iteration number pairs
@@ -156,7 +165,7 @@ public:
   // priority (Key) are added. We'll use a linear search to find the
   // particular value we want to get rid of 
 
-  typedef typename std::map<TKey,TValue,TKeyComp>::const_iterator iterator;
+  typedef typename std::map<TKey,TValue,TKeyComp>::iterator iterator;
   typedef typename std::map<TKey,TValue,TKeyComp>::const_iterator const_iterator;
 
   // default constructor, uses std::greater and std::less for key and value comparisons
@@ -232,7 +241,7 @@ public:
   }
 
   // returns the key at the front of the queue
-  inline TValue front_key(){
+  inline TKey front_key(){
     return (*KeyMap.begin())->first;
   }
 
@@ -258,6 +267,10 @@ public:
     ValueMap.insert( std::pair<TValue,TKey>( val, key ) );
   }
 
+  // might need to have a special insert for when we are sure that the
+  // value isn't already there
+  
+
   // update the key associated with a value,
   // simply a convenience function that calls
   // insert()
@@ -269,6 +282,7 @@ public:
   inline size_t size(){
     return KeyMap.size();
   }
+
 
 private:
   // Keys will be priorities, Values be image locations, in some form.
