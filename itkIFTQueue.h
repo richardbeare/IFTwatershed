@@ -32,7 +32,7 @@ public:
   // Also, values are image locations, which are unique, and therefore
   // we don't need the multimap for the reverse lookup.
 
-  typedef typename std::map<TKey,TValue,TKeyComp>::const_iterator iterator;
+  typedef typename std::map<TKey,TValue,TKeyComp>::iterator iterator;
   typedef typename std::map<TKey,TValue,TKeyComp>::const_iterator const_iterator;
 
   // default constructor, uses std::greater and std::less for key and value comparisons
@@ -324,8 +324,12 @@ private:
 
 
   inline void sperase( typename std::map<TKey,ListType,TKeyComp>::iterator it ){
-    ValueMap.erase( it->second );
-    KeyMap.erase( it );
+    ValueMap.erase( *(it->second.begin()) );
+    it->second.erase(it->second.begin());
+    if (it->second.empty())
+      {
+      KeyMap.erase( it );
+      }
   }
 
 };

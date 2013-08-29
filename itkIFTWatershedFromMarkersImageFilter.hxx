@@ -134,17 +134,37 @@ IFTWatershedFromMarkersImageFilter< TInputImage, TLabelImage >
   flagImage->SetRegions( markerImage->GetLargestPossibleRegion() );
   flagImage->Allocate();
 
+  // a temporary cost image
+  typedef Image< PriorityType, ImageDimension > PriorityImageType;
+  typename PriorityImageType::Pointer costImage = PriorityImageType::New();
+  costImage->SetRegions( markerImage->GetLargestPossibleRegion() );
+  costImage->Allocate();
+
   // iterator for the flag image
   typedef ShapedNeighborhoodIterator< StatusImageType > StatusIteratorType;
-  typename StatusIteratorType::Iterator nsIt;
+  typename StatusIteratorType::Iterator flIt;
   StatusIteratorType
     flagIt( radius, flagImage, outputImage->GetRequestedRegion() );
   ConstantBoundaryCondition< StatusImageType > bcbc;
   bcbc.SetConstant(true);    // outside pixel are already processed
   flagIt.OverrideBoundaryCondition(&bcbc);
   setConnectivity(&flagIt, m_FullyConnected);
-
   flagImage->FillBuffer(false);
+
+  // iterator for the cost image
+  typedef ShapedNeighborhoodIterator< PriorityImageType > CostIteratorType;
+  typename CostIteratorType::Iterator ncIt;
+  CostIteratorType
+    costIt( radius, costImage, outputImage->GetRequestedRegion() );
+  ConstantBoundaryCondition< PriorityImageType > costbc;
+  costbc.SetConstant(true);    // outside pixel are already processed
+  costIt.OverrideBoundaryCondition(&costbc);
+  setConnectivity(&costIt, m_FullyConnected);
+  costImage->FillBuffer(itk::NumericTraits<PriorityType>::max());
+
+#ifdef QUEUEA
+  IterationType GlobalTime = 0;
+#endif
 
   for ( markerIt.GoToBegin(), outputIt.GoToBegin(), inputIt.GoToBegin();
 	!markerIt.IsAtEnd();
@@ -154,13 +174,13 @@ IFTWatershedFromMarkersImageFilter< TInputImage, TLabelImage >
     if ( markerPixel != bgLabel )
       {
       IndexType  idx = markerIt.GetIndex();
-      OffsetType shift = idx - inputIt.GetIndex();
-      inputIt += shift;
-      statusIt += shift;
-
+      OffsetType shift = idx - flagIt.GetIndex();
+      flagIt += shift;
+      costIt += shift;
       // this pixels belongs to a marker
       // copy it to the output image
       outputIt.SetCenterPixel(markerPixel);
+      costIt.SetCenterPixel(0);
       // search if it has background pixel in its neighborhood
       bool haveBgNeighbor = false;
       for ( nmIt = markerIt.Begin(); nmIt != markerIt.End(); nmIt++ )
@@ -174,8 +194,12 @@ IFTWatershedFromMarkersImageFilter< TInputImage, TLabelImage >
       if ( haveBgNeighbor )
 	{
 	// there is a background pixel in the neighborhood; add to fah
-#if QUEUEA
-	fah[0].push( markerIt.GetIndex() );
+#ifdef QUEUEA
+	CombPriorityType P;
+	P.time=GlobalTime;
+	++GlobalTime;
+	P.P = 0;
+	fah.insert(markerIt.GetIndex(), P);
 #else
 
 #endif
@@ -185,7 +209,7 @@ IFTWatershedFromMarkersImageFilter< TInputImage, TLabelImage >
 	// increase progress because this pixel will not be used in the
 	// flooding stage.
 	// Need to mark it in the glag image as done
-	statusIt.SetCenterPixel(true);
+	flagIt.SetCenterPixel(true);
 	progress.CompletedPixel();
 	}
       }
@@ -196,8 +220,61 @@ IFTWatershedFromMarkersImageFilter< TInputImage, TLabelImage >
     progress.CompletedPixel();
     }
   // end of init stage
+  outputIt.GoToBegin();
+  flagIt.GoToBegin();
+  inputIt.GoToBegin();
+  costIt.GoToBegin();
+  // and start flooding
+  while ( !fah.empty() )
+    {
+#ifdef QUEUEA
+    CombPriorityType CP = fah.front_key();
+    IndexType idx = fah.front_value();
+    fah.pop();
+#else
 
+#endif
+    OffsetType shift = idx - outputIt.GetIndex();
+    outputIt += shift;
+    flagIt += shift;
+    inputIt += shift;
+    costIt += shift;
 
+    flagIt.SetCenterPixel(true);
+    // for each p neighbour of idx and flag[p]==false
+    PriorityType CentreCost = costIt.GetCenterPixel();
+    InputImagePixelType CentrePix = inputIt.GetCenterPixel();
+    LabelImagePixelType CentreLab = outputIt.GetCenterPixel();
+    // may be a way of optimizing these neighborhood iterators
+    for (flIt = flagIt.Begin(), ncIt = costIt.Begin(), niIt = inputIt.Begin(), noIt =outputIt.Begin();
+	 flIt != flagIt.End(); 
+	 flIt++, ncIt++, niIt++, noIt++)
+      {
+      if (!flIt.Get())
+	{
+	PriorityType NeighCost = ncIt.Get();
+	InputImagePixelType NeighVal = niIt.Get();
+	// the function defining StepCost needs to be made general
+	PriorityType StepCost = NeighVal - CentrePix;
+	PriorityType NewCost = std::max(CentreCost, StepCost);
+	if (NewCost < NeighCost)
+	  {
+	  ncIt.Set(NewCost);
+	  noIt.Set(CentreLab);
+#ifdef QUEUEA	  
+	  CombPriorityType NP;
+	  NP.P = NewCost;
+	  NP.time = GlobalTime;
+	  ++GlobalTime;
+	  fah.insert(flagIt.GetIndex() + flIt.GetNeighborhoodOffset(), NP);
+#else
+
+#endif
+	  }
+	}
+      }
+
+    }
 }
 
 template< class TInputImage, class TLabelImage >

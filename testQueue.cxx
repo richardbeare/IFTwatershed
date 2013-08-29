@@ -81,6 +81,10 @@ int main(int, char * argv[])
   Q.insert(10, p);
   
   Q.PrintKeyMap();
+  std::cout << "===============" << std::endl;
+
+  Q.pop();
+  Q.PrintKeyMap();
 
   return(EXIT_SUCCESS);
 }

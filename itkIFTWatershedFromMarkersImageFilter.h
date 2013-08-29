@@ -193,7 +193,8 @@ private:
     }
   };
 
-    typedef IFTQueueA<CombPriorityType, IndexType, ComparePriority> DoubleQueueType;
+  typedef IFTQueueA<CombPriorityType, IndexType, ComparePriority, 
+		    typename IndexType::LexicographicCompare> DoubleQueueType;
 #else
     // alternative version that doesn't use two elements in the
     // priority class, but needs to do a search within the list at the

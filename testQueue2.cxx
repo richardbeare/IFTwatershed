@@ -40,6 +40,13 @@ int main(int, char * argv[])
   Q.insert(15, p);
 
   Q.PrintKeyMap();
+  std::cout << "+++++++++++++++++++++" << std::endl;
+  Q.pop();
+  Q.PrintKeyMap();
+  for (unsigned j=0; j< 12;j++) Q.pop();
+  std::cout << "+++++++++++++++++++++" << std::endl;
+  Q.PrintKeyMap();
 
+  
   return(EXIT_SUCCESS);
 }
