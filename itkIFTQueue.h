@@ -21,7 +21,7 @@
 #include <list>
 #include <iostream>
 
-template< typename TKey, typename TValue, typename TKeyComp=std::greater<TKey>, typename TValueComp=std::less<TValue> >
+template< typename TKey, typename TValue, typename TKeyComp=std::less<TKey>, typename TValueComp=std::less<TValue> >
 class IFTQueueA {
 public:
   // this is modified from "mutable_priority_queue" that I found
@@ -157,16 +157,28 @@ private:
 
 };
 
-template< typename TKey, typename TValue, typename TKeyComp=std::greater<TKey>, typename TValueComp=std::less<TValue> >
+template< typename TKey, typename TValue, typename TKeyComp=std::less<TKey>, typename TValueComp=std::less<TValue> >
 class IFTQueueB {
+private:
+  // Keys will be priorities, Values be image locations, in some form.
+  // Priorities will be gray level/iteration number pairs
+  // normally this would
+  // be a queue, but we
+  // need to erase elements
+  typedef typename std::list<TValue> ListType; 
+  std::map<TKey, ListType, TKeyComp> KeyMap;  
+  std::map<TValue, TKey, TValueComp> ValueMap;
+
+  typedef typename std::map<TKey, ListType, TKeyComp>::iterator iterator;
+  typedef typename std::map<TValue, TKey, TValueComp>::const_iterator const_iterator;
+
+  TValueComp valComp;
+
 public:
   // this version is derived from the hierarchical queue used in the
   // watershed that preserves the order in which entries of the same
   // priority (Key) are added. We'll use a linear search to find the
   // particular value we want to get rid of 
-
-  typedef typename std::map<TKey,TValue,TKeyComp>::iterator iterator;
-  typedef typename std::map<TKey,TValue,TKeyComp>::const_iterator const_iterator;
 
   // default constructor, uses std::greater and std::less for key and value comparisons
   IFTQueueB() : KeyMap(TKeyComp()), ValueMap(TValueComp()) { }
@@ -213,7 +225,6 @@ public:
 
   // removes from both maps the value val
   inline void erase( TValue val ){
-    const TValueComp valComp;
     typename std::map<TValue,TKey,TValueComp>::iterator iter=ValueMap.find( val );
     if( iter != ValueMap.end() )
       {
@@ -221,9 +232,9 @@ public:
       typename std::list<TValue>::iterator lit;
       for (lit = i2->second.begin(); lit != i2->second.end(); ++lit)
 	{
-	if (valComp(*lit, val)) 
+	if ((!valComp(*lit, val)) && (!valComp(val, *lit))) 
 	  {
-	  i2->erase(lit);
+	  i2->second.erase(lit);
 	  } 
 	}
       ValueMap.erase( iter );
@@ -237,12 +248,12 @@ public:
 
   // returns the value at the front of the queue
   inline TValue front_value(){
-    return (*KeyMap.begin())->second;
+    return (*(KeyMap.begin())->second.begin());
   }
 
   // returns the key at the front of the queue
   inline TKey front_key(){
-    return (*KeyMap.begin())->first;
+    return (KeyMap.begin())->first;
   }
 
   // removes the front entry in the queue
@@ -283,15 +294,34 @@ public:
     return KeyMap.size();
   }
 
+  void PrintKeyMap()
+  {
+    for (iterator kit = KeyMap.begin(); kit != KeyMap.end();++kit)
+      {
+      std::cout << kit->first << " ";
+      typename std::list<TValue>::iterator lit;
+      for (lit = kit->second.begin(); lit != kit->second.end(); ++lit)
+	{
+	std::cout << *lit << " " ;
+
+	}
+      std::cout << std::endl;
+      }
+  }
 
 private:
   // Keys will be priorities, Values be image locations, in some form.
   // Priorities will be gray level/iteration number pairs
-  typedef typename std::list<TValue> ListType; // normally this would
-					       // be a queue, but we
-					       // need to
-  std::map<TKey, ListType, TKeyComp> KeyMap;  
-  std::map<TValue, TKey, TValueComp> ValueMap;
+  // normally this would
+  // be a queue, but we
+  // need to erase elements
+  // typedef typename std::list<TValue> ListType; 
+  // std::map<TKey, ListType, TKeyComp> KeyMap;  
+  // std::map<TValue, TKey, TValueComp> ValueMap;
+
+  // typedef typename KeyMap::iterator iterator;
+  // typedef typename ValueMap::const_iterator const_iterator;
+
 
   inline void sperase( typename std::map<TKey,ListType,TKeyComp>::iterator it ){
     ValueMap.erase( it->second );
