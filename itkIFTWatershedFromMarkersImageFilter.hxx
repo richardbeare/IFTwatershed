@@ -255,7 +255,8 @@ IFTWatershedFromMarkersImageFilter< TInputImage, TLabelImage >
 	PriorityType NeighCost = ncIt.Get();
 	InputImagePixelType NeighVal = niIt.Get();
 	// the function defining StepCost needs to be made general
-	PriorityType StepCost = NeighVal - CentrePix;
+	// PriorityType StepCost = vcl_abs(NeighVal - CentrePix);
+	PriorityType StepCost = NeighVal;
 	PriorityType NewCost = std::max(CentreCost, StepCost);
 	if (NewCost < NeighCost)
 	  {

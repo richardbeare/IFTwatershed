@@ -30,7 +30,10 @@ namespace itk
  * there is some texture leading to regions of high gradient.
  *
  * The IFTWatershed requires a more complex queue structure and is
- * therefore slower than the MorphologicalWatershedFromMarkers
+ * therefore slower than the MorphologicalWatershedFromMarkers. It
+ * also uses a couple of extra temporary images and thus has a higher
+ * memory footprint. The more complex queue will also contribute to a
+ * higher memory footprint.
  *
  * This class should be equivalent to the mmswatershed function in the
  * SDC toolbox.
