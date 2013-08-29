@@ -4,6 +4,9 @@
 
 #include "itkImageToImageFilter.h"
 
+#define QUEUEA
+#include "itkIFTQueue.h"
+
 namespace itk
 {
 /** \class IFTWatershedFromMarkersImageFilter
@@ -20,10 +23,11 @@ namespace itk
  * publication below, is that new voxels are never added to the queue
  * with a priority lower than that of the neighbour which adds
  * them. This is essential to implicitly computing lower completion,
- * and the itkMorphologicalWatershedFromMarkers works this way.q
+ * and the itkMorphologicalWatershedFromMarkers works this way.
  *
  * IFTWatershed allows a gradient to be computed internally, which can
- * be useful in segmenting fine structures.
+ * be useful in segmenting fine structures. It may also be handy when
+ * there is some texture leading to regions of high gradient.
  *
  * The IFTWatershed requires a more complex queue structure and is
  * therefore slower than the MorphologicalWatershedFromMarkers
@@ -36,7 +40,9 @@ namespace itk
  * Morphology and its Applications to Image and Signal Processing,
  * 2000
  *
- * \author Richard Beare. Department of Medicine, Monash University, Melbourne, Australia.
+ * \author Richard Beare. Department of Medicine, Monash University,
+ * Melbourne, Australia and Murdoch Childrens Research Institute,
+ * Royal Childrens Hospital, Melbourne, Australia.
  *
  * \sa WatershedImageFilter, MorphologicalWatershedFromMarkersImageFilter
  * \ingroup ImageEnhancement  MathematicalMorphologyImageFilters
@@ -151,6 +157,51 @@ private:
   bool m_FullyConnected;
 
   bool m_MarkWatershedLine;
+
+
+#ifdef QUEUEA
+  // typedefs for the double queue structure
+  typedef typename itk::NumericTraits<InputImagePixelType>::RealType PriorityType;
+  typedef long IterationType;
+
+  // priority has two elements, to preserve fifo ordering on plateaus
+  typedef class CombPriorityType {
+  public:
+    PriorityType P;
+    IterationType time;
+
+  } CombPriorityType;
+
+  class ComparePriority {
+  public:
+    ComparePriority(){}
+    ~ComparePriority(){}
+    bool operator !=(const ComparePriority &) const
+    {
+      return(false);
+    }
+    
+    bool operator==(const ComparePriority & other) const
+    {
+      return !( *this != other );
+    }
+    inline bool operator()(const CombPriorityType & A, const CombPriorityType & B) const
+    {
+      if (A.P < B.P) return true;
+      if (A.P==B.P) return (A.time < B.time);
+      return(false);
+    }
+  };
+
+    typedef IFTQueueA<CombPriorityType, IndexType, ComparePriority> DoubleQueueType;
+#else
+    // alternative version that doesn't use two elements in the
+    // priority class, but needs to do a search within the list at the
+    // specific priority to find the voxel.
+#endif
+
+
+
 }; // end of class
 } // end namespace itk
 
