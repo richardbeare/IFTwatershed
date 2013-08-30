@@ -1,7 +1,7 @@
-#ifndef __itkIFTWatershedFromMarkersImageFilter_hxx
-#define __itkIFTWatershedFromMarkersImageFilter_hxx
+#ifndef __itkIFTWatershedFromMarkersBaseImageFilter_hxx
+#define __itkIFTWatershedFromMarkersBaseImageFilter_hxx
 
-#include "itkIFTWatershedFromMarkersImageFilter.h"
+#include "itkIFTWatershedFromMarkersBaseImageFilter.h"
 #include "itkProgressReporter.h"
 #include "itkImageRegionIterator.h"
 #include "itkImageRegionConstIteratorWithIndex.h"
@@ -13,18 +13,18 @@
 
 namespace itk
 {
-template< class TInputImage, class TLabelImage >
-IFTWatershedFromMarkersImageFilter< TInputImage, TLabelImage >
-::IFTWatershedFromMarkersImageFilter()
+template< class TInputImage, class TLabelImage, class TPriorityFunction >
+IFTWatershedFromMarkersBaseImageFilter< TInputImage, TLabelImage, TPriorityFunction >
+::IFTWatershedFromMarkersBaseImageFilter()
 {
   this->SetNumberOfRequiredInputs(2);
   m_FullyConnected = false;
   m_MarkWatershedLine = true;
 }
 
-template< class TInputImage, class TLabelImage >
+template< class TInputImage, class TLabelImage, class TPriorityFunction >
 void
-IFTWatershedFromMarkersImageFilter< TInputImage, TLabelImage >
+IFTWatershedFromMarkersBaseImageFilter< TInputImage, TLabelImage, TPriorityFunction >
 ::GenerateInputRequestedRegion()
 {
   // call the superclass' implementation of this method
@@ -47,18 +47,18 @@ IFTWatershedFromMarkersImageFilter< TInputImage, TLabelImage >
   inputPtr->SetRequestedRegion( inputPtr->GetLargestPossibleRegion() );
 }
 
-template< class TInputImage, class TLabelImage >
+template< class TInputImage, class TLabelImage, class TPriorityFunction >
 void
-IFTWatershedFromMarkersImageFilter< TInputImage, TLabelImage >
+IFTWatershedFromMarkersBaseImageFilter< TInputImage, TLabelImage, TPriorityFunction >
 ::EnlargeOutputRequestedRegion(DataObject *)
 {
   this->GetOutput()->SetRequestedRegion(
     this->GetOutput()->GetLargestPossibleRegion() );
 }
 
-template< class TInputImage, class TLabelImage >
+template< class TInputImage, class TLabelImage, class TPriorityFunction >
 void
-IFTWatershedFromMarkersImageFilter< TInputImage, TLabelImage >
+IFTWatershedFromMarkersBaseImageFilter< TInputImage, TLabelImage, TPriorityFunction >
 ::GenerateData()
 {
 
@@ -278,9 +278,9 @@ IFTWatershedFromMarkersImageFilter< TInputImage, TLabelImage >
     }
 }
 
-template< class TInputImage, class TLabelImage >
+template< class TInputImage, class TLabelImage, class TPriorityFunction >
 void
-IFTWatershedFromMarkersImageFilter< TInputImage, TLabelImage >
+IFTWatershedFromMarkersBaseImageFilter< TInputImage, TLabelImage, TPriorityFunction >
 ::PrintSelf(std::ostream & os, Indent indent) const
 {
   Superclass::PrintSelf(os, indent);

@@ -1,17 +1,42 @@
 
-#ifndef __itkIFTWatershedFromMarkersImageFilter_h
-#define __itkIFTWatershedFromMarkersImageFilter_h
+#ifndef __itkIFTWatershedFromMarkersBaseImageFilter_h
+#define __itkIFTWatershedFromMarkersBaseImageFilter_h
 
 #include "itkImageToImageFilter.h"
 
+#define QUEUEA
+#include "itkIFTQueue.h"
 
 namespace itk
 {
-/** \class IFTWatershedFromMarkersImageFilter
+/** \class IFTWatershedFromMarkersBaseImageFilter
  * \brief IFT watershed transform from markers
  *
- * This is an instantiation of the base image filter with the IFT
- * functor. It can be changed to get a conventional watershed.
+ * The Image Foresting Transform watershed is a variant of the queue
+ * based, flooding, algorithms used to implement the watershed
+ * transform from markers. The IFT watershed claims to address a few
+ * theoretical issues with the traditional approaches, although one of
+ * the serious deficiencies of those approaches that are highlighted
+ * in the publication below are incorrect - catchment basins that do
+ * not contain a marker are not "grabbed" by a random neighbouring
+ * marker, but split. The key point, apparently missed in the
+ * publication below, is that new voxels are never added to the queue
+ * with a priority lower than that of the neighbour which adds
+ * them. This is essential to implicitly computing lower completion,
+ * and the itkMorphologicalWatershedFromMarkers works this way.
+ *
+ * IFTWatershed allows a gradient to be computed internally, which can
+ * be useful in segmenting fine structures. It may also be handy when
+ * there is some texture leading to regions of high gradient.
+ *
+ * The IFTWatershed requires a more complex queue structure and is
+ * therefore slower than the MorphologicalWatershedFromMarkers. It
+ * also uses a couple of extra temporary images and thus has a higher
+ * memory footprint. The more complex queue will also contribute to a
+ * higher memory footprint.
+ *
+ * This class should be equivalent to the mmswatershed function in the
+ * SDC toolbox.
  *
  * "The ordered queue and the optimality of the watershed
  * approaches." Roberto Lotufo and Alexandre Falcao, In Mathematical
@@ -22,85 +47,20 @@ namespace itk
  * Melbourne, Australia and Murdoch Childrens Research Institute,
  * Royal Childrens Hospital, Melbourne, Australia.
  *
- * \sa WatershedImageFilter, IFTWatershedFromMarkersBaseImageFilter, MorphologicalWatershedFromMarkersImageFilter
+ * \sa WatershedImageFilter, MorphologicalWatershedFromMarkersImageFilter
  * \ingroup ImageEnhancement  MathematicalMorphologyImageFilters
  */
 
-/* functors to define the IFT cost?? */
-/* One for similarity watershed, one for traditional watershed ? */
-
-namespace Functor
-{
-/* functors to define the IFT cost?? */
-/* One for similarity watershed, one for traditional watershed ? */
-
-template< class TInput1, class TOutput = TInput1 >
-class IFTWSPriority
-{
-public:
-  typedef typename NumericTraits< TInput1 >::AccumulateType AccumulatorType;
-  IFTWSPriority() {}
-  ~IFTWSPriority() {}
-  bool operator!=(const IFTWSPriority &) const
-  {
-    return false;
-  }
-
-  bool operator==(const IFTWSPriority & other) const
-  {
-    return !( *this != other );
-  }
-
-  // A is the centre pixel, B the neighbour
-  inline TOutput operator()(const TInput1 & A, const TInput1 & B) const
-  {
-    return static_cast< TOutput >( B );
-  }
-};
-
-template< class TInput1, class TOutput = TInput1 >
-class IFTWSPriority
-{
-public:
-  typedef typename NumericTraits< TInput1 >::AccumulateType AccumulatorType;
-  IFTPriority() {}
-  ~IFTPriority() {}
-  bool operator!=(const IFTPriority &) const
-  {
-    return false;
-  }
-
-  bool operator==(const IFTPriority & other) const
-  {
-    return !( *this != other );
-  }
-
-  // A is the centre pixel, B the neighbour
-  inline TOutput operator()(const TInput1 & A, const TInput1 & B) const
-  {
-    return static_cast< TOutput >( B - A );
-  }
-};
-
-}
 
 
-template< class TInputImage, class TLabelImage >
-class ITK_EXPORT IFTWatershedFromMarkersImageFilter:
-    public IFTWatershedFromMarkersBaseImageFilter< TInputImage, TLabelImage, 
-						   Functor::IFTPriority<
-						     typename TInputImage::PixelType,
-						     typename itk::NumericTraits<typename TInputImage::PixelType>::RealType PriorityType> >
+template< class TInputImage, class TLabelImage, class TPriorityFunction >
+class ITK_EXPORT IFTWatershedFromMarkersBaseImageFilter:
+    public ImageToImageFilter< TInputImage, TLabelImage >
 {
 public:
   /** Standard class typedefs. */
-  typedef IFTWatershedFromMarkersImageFilter   Self;
-  typedef IFTWatershedFromMarkersBaseImageFilter< 
-  TInputImage, TLabelImage, 
-    Functor::IFTPriority<
-  typename TInputImage::PixelType,
-    typename itk::NumericTraits<typename TInputImage::PixelType>::RealType PriorityType> > Superclass;
-
+  typedef IFTWatershedFromMarkersBaseImageFilter   Self;
+  typedef ImageToImageFilter< TInputImage, TLabelImage > Superclass;
   typedef SmartPointer< Self >                           Pointer;
   typedef SmartPointer< const Self >                     ConstPointer;
 
