@@ -2,7 +2,7 @@
 #ifndef __itkIFTWatershedFromMarkersImageFilter_h
 #define __itkIFTWatershedFromMarkersImageFilter_h
 
-#include "itkImageToImageFilter.h"
+#include "itkIFTWatershedFromMarkersBaseImageFilter.h"
 
 
 namespace itk
@@ -59,7 +59,7 @@ public:
 };
 
 template< class TInput1, class TOutput = TInput1 >
-class IFTWSPriority
+class IFTPriority
 {
 public:
   typedef typename NumericTraits< TInput1 >::AccumulateType AccumulatorType;
@@ -78,7 +78,7 @@ public:
   // A is the centre pixel, B the neighbour
   inline TOutput operator()(const TInput1 & A, const TInput1 & B) const
   {
-    return static_cast< TOutput >( B - A );
+    return static_cast< TOutput >(vcl_abs( B - A ));
   }
 };
 
@@ -88,9 +88,9 @@ public:
 template< class TInputImage, class TLabelImage >
 class ITK_EXPORT IFTWatershedFromMarkersImageFilter:
     public IFTWatershedFromMarkersBaseImageFilter< TInputImage, TLabelImage, 
-						   Functor::IFTPriority<
+						   typename Functor::IFTPriority<
 						     typename TInputImage::PixelType,
-						     typename itk::NumericTraits<typename TInputImage::PixelType>::RealType PriorityType> >
+						     typename itk::NumericTraits<typename TInputImage::PixelType>::RealType > >
 {
 public:
   /** Standard class typedefs. */
@@ -99,177 +99,28 @@ public:
   TInputImage, TLabelImage, 
     Functor::IFTPriority<
   typename TInputImage::PixelType,
-    typename itk::NumericTraits<typename TInputImage::PixelType>::RealType PriorityType> > Superclass;
+    typename itk::NumericTraits<typename TInputImage::PixelType>::RealType > > Superclass;
 
   typedef SmartPointer< Self >                           Pointer;
   typedef SmartPointer< const Self >                     ConstPointer;
 
-  /** Some convenient typedefs. */
-  typedef TInputImage                           InputImageType;
-  typedef TLabelImage                           LabelImageType;
-  typedef typename InputImageType::Pointer      InputImagePointer;
-  typedef typename InputImageType::ConstPointer InputImageConstPointer;
-  typedef typename InputImageType::RegionType   InputImageRegionType;
-  typedef typename InputImageType::PixelType    InputImagePixelType;
-  typedef typename LabelImageType::Pointer      LabelImagePointer;
-  typedef typename LabelImageType::ConstPointer LabelImageConstPointer;
-  typedef typename LabelImageType::RegionType   LabelImageRegionType;
-  typedef typename LabelImageType::PixelType    LabelImagePixelType;
-
-  typedef typename LabelImageType::IndexType IndexType;
-
-  typedef typename TPriorityFunction PriorityFunctorType;
-
-
-  /** ImageDimension constants */
-  itkStaticConstMacro(ImageDimension, unsigned int,
-                      TInputImage::ImageDimension);
-
-  /** Standard New method. */
+  /** Method for creation through the object factory. */
   itkNewMacro(Self);
 
   /** Runtime information support. */
-  itkTypeMacro(IFTWatershedFromMarkersBaseImageFilter,
-               ImageToImageFilter);
-
-  /** Set the marker image */
-  void SetMarkerImage(const TLabelImage *input)
-  {
-    // Process object is not const-correct so the const casting is required.
-    this->SetNthInput( 1, const_cast< TLabelImage * >( input ) );
-  }
-
-  /** Get the marker image */
-  const LabelImageType * GetMarkerImage() const
-  {
-    return static_cast< LabelImageType * >(
-             const_cast< DataObject * >( this->ProcessObject::GetInput(1) ) );
-  }
-
-  /** Set the input image */
-  void SetInput1(const TInputImage *input)
-  {
-    this->SetInput(input);
-  }
-
-  /** Set the marker image */
-  void SetInput2(const TLabelImage *input)
-  {
-    this->SetMarkerImage(input);
-  }
-
-  /**
-   * Set/Get whether the connected components are defined strictly by
-   * face connectivity or by face+edge+vertex connectivity.  Default is
-   * FullyConnectedOff.  For objects that are 1 pixel wide, use
-   * FullyConnectedOn.
-   */
-  itkSetMacro(FullyConnected, bool);
-  itkGetConstReferenceMacro(FullyConnected, bool);
-  itkBooleanMacro(FullyConnected);
-
-  /**
-   * Set/Get whether the watershed pixel must be marked or not. Default
-   * is true. Set it to false do not only avoid writing watershed pixels,
-   * it also decrease algorithm complexity.
-   */
-  itkSetMacro(MarkWatershedLine, bool);
-  itkGetConstReferenceMacro(MarkWatershedLine, bool);
-  itkBooleanMacro(MarkWatershedLine);
-
-
-  /**
-   * Set/Get functors controlling the priority. This controls which
-   * form of watershed you get
-   */
-  PriorityFunctorType & GetFunctor() { return m_PriorityFunctor; }
-
-  void SetFunctor(const PriorityFunctorType & functor)
-  {
-    if ( m_Functor != functor )
-      {
-      m_PriorityFunctor = functor;
-      this->Modified();
-      }
-  }
+  itkTypeMacro(IFTWatershedFromMarkersImageFilter,
+               IFTWatershedFromMarkersBaseImageFilter);
 
 protected:
-  IFTWatershedFromMarkersBaseImageFilter();
-  ~IFTWatershedFromMarkersBaseImageFilter() {}
-  void PrintSelf(std::ostream & os, Indent indent) const;
-
-  /** IFTWatershedFromMarkersBaseImageFilter needs to request the
-   * entire input images.
-   */
-  void GenerateInputRequestedRegion();
-
-  /** This filter will enlarge the output requested region to produce
-   * all of the output.
-   * \sa ProcessObject::EnlargeOutputRequestedRegion() */
-  void EnlargeOutputRequestedRegion( DataObject *itkNotUsed(output) );
-
-  /** The filter is single threaded. */
-  void GenerateData();
+  IFTWatershedFromMarkersImageFilter(){}
+  ~IFTWatershedFromMarkersImageFilter() {}
 
 private:
   //purposely not implemented
-  IFTWatershedFromMarkersBaseImageFilter(const Self &);
+  IFTWatershedFromMarkersImageFilter(const Self &);
   void operator=(const Self &); //purposely not implemented
 
-  bool m_FullyConnected;
-
-  bool m_MarkWatershedLine;
-
-
-#ifdef QUEUEA
-  // typedefs for the double queue structure
-  typedef typename itk::NumericTraits<InputImagePixelType>::RealType PriorityType;
-  typedef long IterationType;
-
-  // priority has two elements, to preserve fifo ordering on plateaus
-  typedef class CombPriorityType {
-  public:
-    PriorityType P;
-    IterationType time;
-
-  } CombPriorityType;
-
-  class ComparePriority {
-  public:
-    ComparePriority(){}
-    ~ComparePriority(){}
-    bool operator !=(const ComparePriority &) const
-    {
-      return(false);
-    }
-    
-    bool operator==(const ComparePriority & other) const
-    {
-      return !( *this != other );
-    }
-    inline bool operator()(const CombPriorityType & A, const CombPriorityType & B) const
-    {
-      if (A.P < B.P) return true;
-      if (A.P==B.P) return (A.time < B.time);
-      return(false);
-    }
-  };
-
-  typedef IFTQueueA<CombPriorityType, IndexType, ComparePriority, 
-		    typename IndexType::LexicographicCompare> DoubleQueueType;
-#else
-    // alternative version that doesn't use two elements in the
-    // priority class, but needs to do a search within the list at the
-    // specific priority to find the voxel.
-#endif
-
-
-  PriorityFunctorType m_PriorityFunctor;
 }; // end of class
 } // end namespace itk
-
-#ifndef ITK_MANUAL_INSTANTIATION
-#include "itkIFTWatershedFromMarkersBaseImageFilter.hxx"
-#endif
 
 #endif

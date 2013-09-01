@@ -241,6 +241,7 @@ IFTWatershedFromMarkersBaseImageFilter< TInputImage, TLabelImage, TPriorityFunct
     costIt += shift;
 
     flagIt.SetCenterPixel(true);
+    // check for collisions about here?
     // for each p neighbour of idx and flag[p]==false
     PriorityType CentreCost = costIt.GetCenterPixel();
     InputImagePixelType CentrePix = inputIt.GetCenterPixel();
@@ -255,8 +256,8 @@ IFTWatershedFromMarkersBaseImageFilter< TInputImage, TLabelImage, TPriorityFunct
 	PriorityType NeighCost = ncIt.Get();
 	InputImagePixelType NeighVal = niIt.Get();
 	// the function defining StepCost needs to be made general
-	// PriorityType StepCost = vcl_abs(NeighVal - CentrePix);
-	PriorityType StepCost = NeighVal;
+	PriorityType StepCost = m_PriorityFunctor(CentrePix, NeighVal);
+	//PriorityType StepCost = NeighVal;
 	PriorityType NewCost = std::max(CentreCost, StepCost);
 	if (NewCost < NeighCost)
 	  {

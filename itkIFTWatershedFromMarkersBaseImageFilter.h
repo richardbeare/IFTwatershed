@@ -78,7 +78,7 @@ public:
 
   typedef typename LabelImageType::IndexType IndexType;
 
-  typedef typename TPriorityFunction PriorityFunctorType;
+  typedef TPriorityFunction PriorityFunctorType;
 
 
   /** ImageDimension constants */
@@ -146,7 +146,7 @@ public:
 
   void SetFunctor(const PriorityFunctorType & functor)
   {
-    if ( m_Functor != functor )
+    if ( m_PriorityFunctor != functor )
       {
       m_PriorityFunctor = functor;
       this->Modified();
@@ -223,8 +223,8 @@ private:
     // specific priority to find the voxel.
 #endif
 
-
   PriorityFunctorType m_PriorityFunctor;
+
 }; // end of class
 } // end namespace itk
 
