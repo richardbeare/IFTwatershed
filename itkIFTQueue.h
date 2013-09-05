@@ -235,6 +235,11 @@ public:
 	if ((!valComp(*lit, val)) && (!valComp(val, *lit))) 
 	  {
 	  i2->second.erase(lit);
+	  if (i2->second.empty())
+	    {
+	    KeyMap.erase(i2);
+	    }
+	  break;
 	  } 
 	}
       ValueMap.erase( iter );

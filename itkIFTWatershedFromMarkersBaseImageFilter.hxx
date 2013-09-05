@@ -201,7 +201,7 @@ IFTWatershedFromMarkersBaseImageFilter< TInputImage, TLabelImage, TPriorityFunct
 	P.P = 0;
 	fah.insert(markerIt.GetIndex(), P);
 #else
-
+	fah.insert(markerIt.GetIndex(), 0);	
 #endif
 	}
       else
@@ -232,6 +232,9 @@ IFTWatershedFromMarkersBaseImageFilter< TInputImage, TLabelImage, TPriorityFunct
     IndexType idx = fah.front_value();
     fah.pop();
 #else
+    PriorityType CP=fah.front_key();
+    IndexType idx = fah.front_value();
+    fah.pop();
 
 #endif
     OffsetType shift = idx - outputIt.GetIndex();
@@ -270,7 +273,7 @@ IFTWatershedFromMarkersBaseImageFilter< TInputImage, TLabelImage, TPriorityFunct
 	  ++GlobalTime;
 	  fah.insert(flagIt.GetIndex() + flIt.GetNeighborhoodOffset(), NP);
 #else
-
+	  fah.insert(flagIt.GetIndex() + flIt.GetNeighborhoodOffset(), NewCost);
 #endif
 	  }
 	}

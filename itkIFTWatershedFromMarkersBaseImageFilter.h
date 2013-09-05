@@ -4,7 +4,7 @@
 
 #include "itkImageToImageFilter.h"
 
-#define QUEUEA
+//#define QUEUEA
 #include "itkIFTQueue.h"
 
 namespace itk
@@ -221,6 +221,13 @@ private:
     // alternative version that doesn't use two elements in the
     // priority class, but needs to do a search within the list at the
     // specific priority to find the voxel.
+  typedef typename itk::NumericTraits<InputImagePixelType>::RealType PriorityType;
+
+
+
+  typedef IFTQueueB<PriorityType, IndexType, std::less<PriorityType>, typename IndexType::LexicographicCompare> DoubleQueueType;
+  
+
 #endif
 
   PriorityFunctorType m_PriorityFunctor;
