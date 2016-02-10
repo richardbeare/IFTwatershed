@@ -23,6 +23,11 @@ SET(TEST_COMMAND ${ITK_TEST_DRIVER} --add-before-env PATH ${CMAKE_CURRENT_BINARY
 SET(Required_Packages
   ITK
 )
+INCLUDE_DIRECTORIES(
+  ${CMAKE_CURRENT_SOURCE_DIR}
+#  ${CMAKE_CURRENT_SOURCE_DIR}/Modules/parabolicMorphology/
+#  ${CMAKE_CURRENT_SOURCE_DIR}/tclap-code/include/
+)
 
 #this foreach loads all of the packages that you specified as required.
 #It shouldn't need to be modified.
@@ -71,7 +76,7 @@ ENDIF(BUILD_WRAPPERS)
 
 IF(BUILD_TESTING)
 
-FOREACH(CurrentExe "testQueue" "testQueue2" "testIFT" "testDis")
+FOREACH(CurrentExe "testQueue" "testQueue2" "testIFT" "testDis" "markerWS")
 ADD_EXECUTABLE(${CurrentExe} ${CurrentExe}.cxx)
 TARGET_LINK_LIBRARIES(${CurrentExe} ${Libraries})
 ENDFOREACH(CurrentExe)

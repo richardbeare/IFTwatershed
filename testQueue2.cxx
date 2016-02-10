@@ -1,5 +1,6 @@
 #include "itkIFTQueue.h"
 #include <iostream>
+#include <cstdlib>
 
 typedef long IndexType;
 typedef float PriorityType;
