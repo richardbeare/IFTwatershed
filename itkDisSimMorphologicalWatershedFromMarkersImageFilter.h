@@ -66,7 +66,8 @@ public:
 
   typedef TPriorityFunction PriorityFunctorType;
   // this is probably overkill
-  typedef typename itk::NumericTraits<InputImagePixelType>::RealType PriorityType;
+  //typedef typename itk::NumericTraits<InputImagePixelType>::RealType PriorityType;
+  typedef typename itk::NumericTraits<typename InputImageType::InternalPixelType>::RealType PriorityType;
 
 
   /** ImageDimension constants */

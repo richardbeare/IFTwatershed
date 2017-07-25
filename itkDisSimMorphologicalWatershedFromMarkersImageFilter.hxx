@@ -118,7 +118,7 @@ DisSimMorphologicalWatershedFromMarkersImageFilter< TInputImage, TLabelImage, TP
 
   // FAH (in french: File d'Attente Hierarchique)
   typedef std::queue< IndexType >                    QueueType;
-  typedef std::map< InputImagePixelType, QueueType > MapType;
+  typedef std::map< PriorityType, QueueType > MapType;
   MapType fah;
 
   // the radius which will be used for all the shaped iterators
@@ -251,8 +251,8 @@ DisSimMorphologicalWatershedFromMarkersImageFilter< TInputImage, TLabelImage, TP
     while ( !fah.empty() )
       {
       // store the current vars
-      InputImagePixelType currentValue = fah.begin()->first;
-      QueueType           currentQueue = fah.begin()->second;
+      PriorityType currentValue = fah.begin()->first;
+      QueueType    currentQueue = fah.begin()->second;
       // and remove them from the fah
       fah.erase( fah.begin() );
 
@@ -353,7 +353,7 @@ DisSimMorphologicalWatershedFromMarkersImageFilter< TInputImage, TLabelImage, TP
         outputIt.SetCenterPixel(markerPixel);
         // search if it has background pixel in its neighborhood
         bool haveBgNeighbor = false;
-        for ( nmIt = markerIt.Begin(); nmIt != markerIt.End(); nmIt++ )
+        for ( nmIt = markerIt.Begin(); nmIt != markerIt.End(); nmIt++)
           {
           if ( nmIt.Get() == bgLabel )
             {
@@ -363,7 +363,8 @@ DisSimMorphologicalWatershedFromMarkersImageFilter< TInputImage, TLabelImage, TP
           }
         if ( haveBgNeighbor )
           {
-          // there is a background pixel in the neighborhood; add to fah
+          // there is a background pixel in the neighborhood; add to
+          // fah
           fah[0].push( markerIt.GetIndex() );
           }
         else
@@ -390,8 +391,8 @@ DisSimMorphologicalWatershedFromMarkersImageFilter< TInputImage, TLabelImage, TP
     while ( !fah.empty() )
       {
       // store the current vars
-      InputImagePixelType currentValue = fah.begin()->first;
-      QueueType           currentQueue = fah.begin()->second;
+      PriorityType currentValue = fah.begin()->first;
+      QueueType    currentQueue = fah.begin()->second;
       // and remove them from the fah
       fah.erase( fah.begin() );
 
