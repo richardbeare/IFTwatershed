@@ -154,8 +154,7 @@ DisSimMorphologicalWatershedFromMarkersImageFilter< TInputImage, TLabelImage, TP
   //---------------------------------------------------------------------------
   // Meyer's algorithm
   //---------------------------------------------------------------------------
-  if ( m_MarkWatershedLine )
-    {
+    
     // first stage:
     //  - set markers pixels to already processed status
     //  - copy markers pixels to output image
@@ -190,6 +189,14 @@ DisSimMorphologicalWatershedFromMarkersImageFilter< TInputImage, TLabelImage, TP
     // marker) so it's difficult (impossible ?) to init the status image at
     // the same time
     // the overhead should be small
+    //
+    // In the dissimilarity framework the status image is used to
+    // track whether a voxel is a watershed line.
+    // Otherwise we use the output image to track whether a voxel is
+    // already labelled. This allows voxels to be inserted in the
+    // queue multiple times, but only the highest priority entry
+    // will be used.
+    
     statusImage->FillBuffer(false);
 
     for ( markerIt.GoToBegin(), statusIt.GoToBegin(), outputIt.GoToBegin(), inputIt.GoToBegin();
@@ -224,11 +231,13 @@ DisSimMorphologicalWatershedFromMarkersImageFilter< TInputImage, TLabelImage, TP
             {
             // this neighbor is a background pixel and is not already
             // processed; add its index to fah
+	    // Priority depends on neighbour combinations, so needs to support
+            // pixels being put on more than once
 	    PriorityType priority = m_PriorityFunctor(inputIt.GetCenterPixel(), niIt.Get());
             fah[priority].push( markerIt.GetIndex()
                                   + nmIt.GetNeighborhoodOffset() );
             // mark it as already in the fah to avoid adding it several times
-            nsIt.Set(true);
+            // nsIt.Set(true);
             }
           }
         }
@@ -267,6 +276,8 @@ DisSimMorphologicalWatershedFromMarkersImageFilter< TInputImage, TLabelImage, TP
         statusIt += shift;
         inputIt += shift;
 
+	// skip if we've already labelled it.
+	if (outputIt.GetCenterPixel() != wsLabel) continue;
         // iterate over the neighbors. If there is only one marker value, give
         // that value to the pixel, else keep it as is (watershed line)
         LabelImagePixelType marker = wsLabel;
@@ -290,11 +301,12 @@ DisSimMorphologicalWatershedFromMarkersImageFilter< TInputImage, TLabelImage, TP
           // set the marker value
           outputIt.SetCenterPixel(marker);
           // and propagate to the neighbors
-          for ( niIt = inputIt.Begin(), nsIt = statusIt.Begin();
+          for ( niIt = inputIt.Begin(), nsIt = statusIt.Begin(), noIt = outputIt.Begin();
                 niIt != inputIt.End();
-                niIt++, nsIt++ )
+                niIt++, nsIt++, noIt++ )
             {
-            if ( !nsIt.Get() )
+	    // can't be a watershed line or already labelled
+            if ( !nsIt.Get() & (noIt.Get() == wsLabel)  ) 
               {
               // the pixel is not yet processed. add it to the fah
               //InputImagePixelType GrayVal = niIt.Get();
@@ -311,130 +323,55 @@ DisSimMorphologicalWatershedFromMarkersImageFilter< TInputImage, TLabelImage, TP
                                    + niIt.GetNeighborhoodOffset() );
                 }
               // mark it as already in the fah
-              nsIt.Set(true);
+              // nsIt.Set(true);
               }
             }
           }
+	else
+	  {
+	   // mark the status image - watershed lines can't change
+	   statusIt.SetCenterPixel(true);
+	  }
         // one more pixel in the flooding stage
         progress.CompletedPixel();
         }
       }
-    }
+    
 
-  //---------------------------------------------------------------------------
-  // Beucher's algorithm
-  //---------------------------------------------------------------------------
-  else
-    {
-    // first stage:
-    //  - copy markers pixels to output image
-    //  - init FAH with indexes of pixels with background pixel in their
-    //    neighborhood
-
-    ConstantBoundaryCondition< LabelImageType > lcbc2;
-    // outside pixel are watershed so they won't be use to find real watershed
-    // pixels
-    lcbc2.SetConstant( NumericTraits< LabelImagePixelType >::max() );
-    outputIt.OverrideBoundaryCondition(&lcbc2);
-
-    for ( markerIt.GoToBegin(), outputIt.GoToBegin(), inputIt.GoToBegin();
-          !markerIt.IsAtEnd();
-          ++markerIt, ++outputIt )
+  // Beucher's algorithm doesn't translate easily to dissimilarity style - forget it and
+  // hack the Meyer version
+    if ( !m_MarkWatershedLine )
       {
-      LabelImagePixelType markerPixel = markerIt.GetCenterPixel();
-      if ( markerPixel != bgLabel )
-        {
-        IndexType  idx = markerIt.GetIndex();
-        OffsetType shift = idx - inputIt.GetIndex();
-        inputIt += shift;
-
-        // this pixels belongs to a marker
-        // copy it to the output image
-        outputIt.SetCenterPixel(markerPixel);
-        // search if it has background pixel in its neighborhood
-        bool haveBgNeighbor = false;
-        for ( nmIt = markerIt.Begin(); nmIt != markerIt.End(); nmIt++)
-          {
-          if ( nmIt.Get() == bgLabel )
-            {
-            haveBgNeighbor = true;
-            break;
-            }
-          }
-        if ( haveBgNeighbor )
-          {
-          // there is a background pixel in the neighborhood; add to
-          // fah
-          fah[0].push( markerIt.GetIndex() );
-          }
-        else
-          {
-          // increase progress because this pixel will not be used in the
-          // flooding stage.
-          progress.CompletedPixel();
-          }
-        }
-      else
-        {
-        outputIt.SetCenterPixel(wsLabel);
-        }
-      progress.CompletedPixel();
+      // iterate over the output image and fill in the watershed line
+      for ( outputIt.GoToBegin(), inputIt.GoToBegin();
+	    !outputIt.IsAtEnd(); ++outputIt )
+	{
+	LabelImagePixelType markerPixel = outputIt.GetCenterPixel();
+	if ( markerPixel == bgLabel )
+	  {
+	  // watershed line - find the most similar neighbour (lowest difference)
+	  IndexType idx = outputIt.GetIndex();
+	  // move the iterators to the right place
+	  OffsetType shift = idx - inputIt.GetIndex();
+	  inputIt += shift;
+	  PriorityType bestpriority = itk::NumericTraits<PriorityType>::max();
+	  LabelImagePixelType M = wsLabel;
+	  for ( nmIt = outputIt.Begin(), niIt = inputIt.Begin();
+		nmIt != outputIt.End();
+		nmIt++, niIt++ )
+	    {
+	    PriorityType priority = m_PriorityFunctor(inputIt.GetCenterPixel(), niIt.Get());
+	    if (priority < bestpriority)
+	      {
+	      bestpriority = priority;
+	      M = nmIt.Get();
+	      }
+	    }
+	  outputIt.SetCenterPixel(M);
+	  }
+	}
       }
-    // end of init stage
-
-    // flooding
-    // init all the iterators
-    outputIt.GoToBegin();
-    inputIt.GoToBegin();
-
-    // and start flooding
-    while ( !fah.empty() )
-      {
-      // store the current vars
-      PriorityType currentValue = fah.begin()->first;
-      QueueType    currentQueue = fah.begin()->second;
-      // and remove them from the fah
-      fah.erase( fah.begin() );
-
-      while ( !currentQueue.empty() )
-        {
-        IndexType idx = currentQueue.front();
-        currentQueue.pop();
-
-        // move the iterators to the right place
-        OffsetType shift = idx - outputIt.GetIndex();
-        outputIt += shift;
-        inputIt += shift;
-
-        LabelImagePixelType currentMarker = outputIt.GetCenterPixel();
-        // get the current value of the pixel
-        // iterate over neighbors to propagate the marker
-        for ( noIt = outputIt.Begin(), niIt = inputIt.Begin();
-              noIt != outputIt.End();
-              noIt++, niIt++ )
-          {
-          if ( noIt.Get() == wsLabel )
-            {
-            // the pixel is not yet processed. It can be labeled with the
-            // current label
-            noIt.Set(currentMarker);
-            PriorityType priority = m_PriorityFunctor(inputIt.GetCenterPixel(), niIt.Get());
-            if ( priority <= 0 )
-              {
-              currentQueue.push( inputIt.GetIndex()
-                                 + noIt.GetNeighborhoodOffset() );
-              }
-            else
-              {
-              fah[priority].push( inputIt.GetIndex()
-				  + noIt.GetNeighborhoodOffset() );
-              }
-            progress.CompletedPixel();
-            }
-          }
-        }
-      }
-    }
+    
 }
 
 template< class TInputImage, class TLabelImage, class TPriorityFunction >
