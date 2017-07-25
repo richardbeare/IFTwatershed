@@ -19,7 +19,7 @@ typedef class CmdLineType
 public:
   std::string InputIm, OutputIm, MarkerIm;
   float scale;
-  bool morphGrad, MarkWSLine, dissim;
+  bool morphGrad, MarkWSLine, dissim, FullyConnected;
 } CmdLineType;
 
 void ParseCmdLine(int argc, char* argv[],
@@ -51,6 +51,9 @@ void ParseCmdLine(int argc, char* argv[],
     SwitchArg lineArg("l","markline","Mark the watershed line", false);
     cmd.add(lineArg);
 
+    SwitchArg conArg("","FullyConnected","connectivity", false);
+    cmd.add(conArg);
+
     SwitchArg disArg("","dissimilarity","use a dissimilarity watershed (internal gradient calculation - all gradient stuff is ignored", false);
     cmd.add(disArg);
 
@@ -64,6 +67,7 @@ void ParseCmdLine(int argc, char* argv[],
     CmdLineObj.morphGrad = morphArg.getValue();
     CmdLineObj.MarkWSLine = lineArg.getValue();
     CmdLineObj.dissim = disArg.getValue();
+    CmdLineObj.FullyConnected = conArg.getValue();
 
     }
   catch (ArgException &e)  // catch any exceptions
@@ -123,6 +127,7 @@ void doWatershed(const CmdLineType &CmdLineObj)
     typename WSFiltType2::Pointer wsfilt = WSFiltType2::New();
     wsfilt->SetInput(input);
     wsfilt->SetMarkWatershedLine(CmdLineObj.MarkWSLine);
+    wsfilt->SetFullyConnected(CmdLineObj.FullyConnected);
     // wsfilt->SetMarkerImage(orienter->GetOutput());
     wsfilt->SetMarkerImage(readIm<LabImType>(CmdLineObj.MarkerIm));
     std::cout << "started dissimilarity watershed" << std::endl;
@@ -131,7 +136,7 @@ void doWatershed(const CmdLineType &CmdLineObj)
     res->DisconnectPipeline();
     //res->CopyInformation(raw);
     writeIm<LabImType>(res, CmdLineObj.OutputIm);
-    } 
+    }
   else 
     {
     if (CmdLineObj.scale != 0.0)
@@ -205,6 +210,7 @@ void doWatershed(const CmdLineType &CmdLineObj)
     typename WSFiltType::Pointer wsfilt = WSFiltType::New();
     wsfilt->SetInput(grad);
     wsfilt->SetMarkWatershedLine(CmdLineObj.MarkWSLine);
+    wsfilt->SetFullyConnected(CmdLineObj.FullyConnected);
     // wsfilt->SetMarkerImage(orienter->GetOutput());
     wsfilt->SetMarkerImage(readIm<LabImType>(CmdLineObj.MarkerIm));
     std::cout << "started watershed" << std::endl;
